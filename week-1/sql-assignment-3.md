@@ -1,25 +1,25 @@
 *Retrieve the title, release year, and length of all movies in the database.*
 
 SELECT
-	title, release_year, length
+    title, release_year, length
 FROM film
 
 *List the titles and descriptions of movies released after the year 2000.*
 
 SELECT
-	title, description
+    title, description
 FROM 
-	film
+    film
 WHERE release_year > 2000
 
 *Display the first 10 movie titles in alphabetical order.*
 
 SELECT
-	title
+    title
 FROM 	
-	film
+    film
 ORDER BY 
-	title
+    title
 LIMIT 10
 
 *Show the titles of movies where the title contains the word "Action".*
