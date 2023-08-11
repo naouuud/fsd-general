@@ -1,28 +1,26 @@
 <em>Retrieve the title, release year, and length of all movies in the database.</em>
 
-<p>
-	SELECT
-	title, release_year, length
-	FROM film
-</p>
+SELECT<br>
+	title, release_year, length<br>
+FROM film<br>
 
 *List the titles and descriptions of movies released after the year 2000.*
 
-SELECT
-    title, description
-FROM 
-    film
-WHERE release_year > 2000
+SELECT<br>
+    title, description<br>
+FROM<br>
+    film<br>
+WHERE release_year > 2000<br>		
 
 *Display the first 10 movie titles in alphabetical order.*
 
-SELECT
-    title  
-FROM 	
-    film
-ORDER BY 
-    title
-LIMIT 10
+SELECT<br>
+    title<br>
+FROM<br> 	
+    film<br>
+ORDER BY<br> 
+    title<br>
+LIMIT 10<br>
 
 *Show the titles of movies where the title contains the word "Action".*
 
