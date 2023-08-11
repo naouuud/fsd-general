@@ -1,8 +1,10 @@
-*Retrieve the title, release year, and length of all movies in the database.*
+<em>Retrieve the title, release year, and length of all movies in the database.</em>
 
-<p>SELECT</p>
-    <p>title, release_year, length</p>
-<p>FROM film</p>
+<p>
+	SELECT
+	title, release_year, length
+	FROM film
+</p>
 
 *List the titles and descriptions of movies released after the year 2000.*
 
