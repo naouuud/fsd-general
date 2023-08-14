@@ -24,7 +24,7 @@ GROUP BY mycustomer.customer_id
 ORDER BY COUNT(mypayment.amount) DESC
 
 -- top 3 most rented categories
--- attempts
+-- attempts (failed)
 SELECT
 	mycategory.name,
  	COUNT(mycategory.name) as value_occurrence
