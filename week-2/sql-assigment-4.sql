@@ -110,7 +110,7 @@ FROM
 FROM film as myfilm
 LEFT OUTER JOIN inventory as myinventory
 ON myfilm.film_id = myinventory.film_id
-INNER JOIN rental as myrental
+LEFT OUTER JOIN rental as myrental
 ON myrental.inventory_id = myinventory.inventory_id
 WHERE myinventory.inventory_id IS NULL
 GROUP BY myfilm.film_id)a
