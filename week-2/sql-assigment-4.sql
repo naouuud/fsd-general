@@ -19,11 +19,11 @@ ON mycustomer.customer_id = mypayment.customer_id
 GROUP BY mycustomer.customer_id
 ORDER BY COUNT(mypayment.amount) DESC
 
--- top 3 most rented categories (NOT SOLVED)
-SELECT
+-- top 3 most rented categories by customer (NOT SOLVED)
+WITH CUSTOMER_CATEGORY_CTE AS
+(SELECT
 	myrental.customer_id,
-	mycategory.name,
- 	COUNT(mycategory.name) as value_occurrence
+	mycategory.name as category_name
 FROM rental as myrental
 LEFT OUTER JOIN inventory as myinventory
 ON myrental.inventory_id = myinventory.inventory_id
@@ -31,8 +31,14 @@ LEFT OUTER JOIN film_category as myfilm_category
 ON myinventory.film_id = myfilm_category.film_id
 LEFT OUTER JOIN category as mycategory
 ON myfilm_category.category_id = mycategory.category_id
-GROUP BY myrental.customer_id, mycategory.name
-ORDER BY myrental.customer_id, COUNT(mycategory.name) DESC
+ORDER BY myrental.customer_id)
+
+SELECT 
+*
+FROM CUSTOMER_CATEGORY_CTE as CUSTOMER_CATEGORY_CTE1
+INNER JOIN CUSTOMER_CATEGORY_CTE as CUSTOMER_CATEGORY_CTE2
+ON CUSTOMER_CATEGORY_CTE1.customer_id = CUSTOMER_CATEGORY_CTE2.customer_id
+-- not sure how to proceed
 
 -- 2. Identify customers who have never rented films but have made payments.
 SELECT
