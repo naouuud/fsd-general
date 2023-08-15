@@ -84,10 +84,6 @@ LEFT OUTER JOIN customer as mycustomer
 ON mycustomer.address_id = myaddress.address_id
 RIGHT OUTER JOIN rental as myrental
 ON myrental.customer_id = mycustomer.customer_id
-LEFT OUTER JOIN inventory as myinventory
-ON myrental.inventory_id = myinventory.inventory_id
-LEFT OUTER JOIN film as myfilm
-ON myinventory.film_id = myfilm.film_id
 GROUP BY mycity.city
 ORDER BY COUNT(DISTINCT myrental.rental_id) / COUNT(DISTINCT myrental.customer_id) DESC
 
