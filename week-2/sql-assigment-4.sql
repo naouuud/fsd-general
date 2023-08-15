@@ -1,17 +1,13 @@
 -- Calculate the average rental duration and total revenue for each customer, 
 -- along with their top 3 most rented film categories.
 
--- average rental duration
+-- average rental duration using difference between timestamps
 SELECT
 	myrental.customer_id,
-	AVG(myfilm.rental_duration) as avg_rental_duration
+	AVG(myrental.return_date - myrental.rental_date) AS avg_rental_duration
 FROM rental as myrental
-LEFT OUTER JOIN inventory as myinventory
-ON myrental.inventory_id = myinventory.inventory_id
-LEFT OUTER JOIN film as myfilm
-ON myinventory.film_id = myfilm.film_id
 GROUP BY myrental.customer_id
-ORDER BY AVG(myfilm.rental_duration) DESC
+ORDER BY myrental.customer_id
 
 -- total revenue for each customer
 SELECT 
@@ -23,8 +19,7 @@ ON mycustomer.customer_id = mypayment.customer_id
 GROUP BY mycustomer.customer_id
 ORDER BY COUNT(mypayment.amount) DESC
 
--- top 3 most rented categories
--- attempts (failed)
+-- top 3 most rented categories (failed)
 SELECT
 	mycategory.name,
  	COUNT(mycategory.name) as value_occurrence
@@ -79,15 +74,7 @@ GROUP BY mycity.city
 ORDER BY COUNT(DISTINCT myrental.rental_id) / COUNT(DISTINCT myrental.customer_id) DESC
 
 -- Identify films that have been rented more than the average number of times and are currently not in inventory.
--- currently not in inventory
-SELECT
-	*
-FROM film as myfilm
-LEFT OUTER JOIN inventory as myinventory
-ON myfilm.film_id = myinventory.film_id
-WHERE myinventory.inventory_id IS NULL
-
---finding average rentals per film (result = 16.74)
+-- query 1 - find average rentals per film (result = 16.74)
 SELECT AVG(total_rentals)
 FROM
 (SELECT
@@ -100,7 +87,7 @@ INNER JOIN rental as myrental
 ON myrental.inventory_id = myinventory.inventory_id
 GROUP BY myfilm.film_id)a
 
---complete solution
+-- query 2 - films that have been rented more than the average number of times and are currently not in inventory
 SELECT film_id, total_rentals
 FROM
 (SELECT
@@ -115,3 +102,17 @@ WHERE myinventory.inventory_id IS NULL
 GROUP BY myfilm.film_id)a
 WHERE a.total_rentals > 16
 ORDER BY a.total_rentals DESC
+
+--- Calculate the replacement cost of lost films for each store, considering the rental history.
+SELECT 
+mystore.store_id,
+SUM(myfilm.replacement_cost) as total_replacement_cost
+FROM film as myfilm
+LEFT OUTER JOIN inventory as myinventory
+ON myfilm.film_id = myinventory.film_id
+LEFT OUTER JOIN rental as myrental
+ON myinventory.inventory_id = myrental.inventory_id
+INNER JOIN store as mystore
+ON myinventory.store_id = mystore.store_id
+WHERE myrental.return_date IS NULL
+GROUP BY mystore.store_id
