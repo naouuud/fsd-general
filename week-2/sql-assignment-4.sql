@@ -178,8 +178,8 @@ WITH REVENUE_FROM_FILMS AS
 mystore.store_id,
 myfilm.film_id,
 myfilm.rental_rate,
-COUNT(DISTINCT myinventory.inventory_id) as times_rented,
-myfilm.rental_rate * COUNT(DISTINCT myinventory.inventory_id) as revenue_from_film
+COUNT(myinventory.inventory_id) as times_rented,
+myfilm.rental_rate * COUNT(myinventory.inventory_id) as revenue_from_film
 FROM rental as myrental
 INNER JOIN inventory as myinventory
 ON myrental.inventory_id = myinventory.inventory_id
@@ -193,7 +193,7 @@ REVENUE_FROM_FILMS.store_id,
 SUM(REVENUE_FROM_FILMS.revenue_from_film) as total_revenue_from_films
 FROM REVENUE_FROM_FILMS
 GROUP BY REVENUE_FROM_FILMS.store_id
--- Total revenue: Store 1 - 6727.3, Store 2 - 6788.9
+-- Total revenue: Store 1 - 23509.77, Store 2 - 23701.79
 
 -- then find revenue from all payments by store
 SELECT
