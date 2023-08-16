@@ -172,25 +172,39 @@ ORDER BY COUNT(myrental.rental_id) DESC
 LIMIT 10
 
 -- 9. Identify stores where the revenue from film rentals exceeds the revenue from payments for all customers.
--- revenue from film rentals by store
-SELECT
+-- first find revenue from film rentals by store
+WITH REVENUE_FROM_FILMS AS 
+(SELECT 
 mystore.store_id,
-SUM(mypayment.amount) as total_revenue
-FROM store as mystore
-LEFT OUTER JOIN inventory as myinventory
-ON mystore.store_id = myinventory.store_id
-LEFT OUTER JOIN rental as myrental
-ON myinventory.inventory_id = myrental.inventory_id
-LEFT OUTER JOIN payment as mypayment
-ON myrental.rental_id = mypayment.rental_id
-GROUP BY mystore.store_id
+myfilm.film_id,
+myfilm.rental_rate,
+COUNT(DISTINCT myinventory.inventory_id) as times_rented,
+myfilm.rental_rate * COUNT(DISTINCT myinventory.inventory_id) as revenue_from_film
+FROM rental as myrental
+INNER JOIN inventory as myinventory
+ON myrental.inventory_id = myinventory.inventory_id
+INNER JOIN store as mystore
+ON myinventory.store_id = mystore.store_id
+INNER JOIN film as myfilm
+ON myinventory.film_id = myfilm.film_id
+GROUP BY mystore.store_id, myfilm.film_id)
+SELECT 
+REVENUE_FROM_FILMS.store_id,
+SUM(REVENUE_FROM_FILMS.revenue_from_film) as total_revenue_from_films
+FROM REVENUE_FROM_FILMS
+GROUP BY REVENUE_FROM_FILMS.store_id
+-- Total revenue: Store 1 - 6727.3, Store 2 - 6788.9
 
--- revenue from all payments linked to customer
+-- then find revenue from all payments by store
 SELECT
+	mycustomer.store_id,
 	SUM(mypayment.amount) as total_payments
 FROM payment as mypayment 
-WHERE mypayment.customer_id IS NOT NULL
--- THEN compare values from each query
+INNER JOIN customer as mycustomer
+ON mypayment.customer_id = mycustomer.customer_id
+GROUP BY mycustomer.store_id
+-- Total payments: Store 1 - 33621.42, Store 2 - 27690.62
+-- Result: payments at both stores exceed revenue from rentals
 
 -- 10. Determine the average rental duration and total revenue for each store, considering different payment methods
 -- Not sure what is meant by different payment methods
