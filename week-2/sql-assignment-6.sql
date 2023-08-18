@@ -36,13 +36,13 @@ END AS greater_than_average
 FROM RENTALS_BY_FILM
 
 -- Using Query sent on slack, please update self joins to the CTE to come up with 3 addition columns (first, second, third).
--- (in progress)
+-- Using partitions:
 
 WITH FILM_CATEGORY AS
 (
 	SELECT 
 			se_rental.customer_id,
-			se_category.name,
+			se_category.name as category_name,
 			COUNT(se_rental.rental_id) AS total_rentals
 		FROM public.rental AS se_rental
 		INNER JOIN public.inventory AS se_inventory
@@ -57,31 +57,15 @@ WITH FILM_CATEGORY AS
 			se_rental.customer_id,
 			se_category.name
 		ORDER BY customer_id, COUNT(se_rental.rental_id) DESC
-	),
-SELF_JOIN_1 AS 
-(
-	SELECT 
-	FC1.customer_id as customer_id,
-	FC1.name as name1,
-	FC2.name as name2
-	FROM FILM_CATEGORY as FC1
-	INNER JOIN FILM_CATEGORY as FC2
-	ON FC1.customer_id = FC2.customer_id
-	),
-TOP_1 AS
-(
-	SELECT 
-		customer_id,
-		name1,
-		name2,
-		CASE WHEN name1 = name2 THEN name1
-		END AS top_1
-	FROM SELF_JOIN_1
 	)
 SELECT
-customer_id,
-name1,
-name2
-FROM TOP_1
-
--- still in progress (please don't laugh)
+	 part_by_cust.*
+	 FROM
+	 (SELECT
+	 FILM_CATEGORY.customer_id,
+	 FILM_CATEGORY.category_name,
+	 FILM_CATEGORY.total_rentals,
+	 ROW_NUMBER() OVER (PARTITION BY FILM_CATEGORY.customer_id ORDER BY FILM_CATEGORY.total_rentals DESC)
+	 FROM FILM_CATEGORY) part_by_cust
+	 WHERE part_by_cust.row_number IN (1, 2, 3)
+	 
