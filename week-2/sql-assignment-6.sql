@@ -6,34 +6,32 @@ WITH
 RENTALS_BY_FILM AS
 (
     SELECT 
-    myfilm.film_id,
-    myfilm.title,
-    COUNT(myrental.rental_id) as total_times_rented
-    FROM
-    film as myfilm
-    LEFT OUTER JOIN inventory as myinventory
-    ON myfilm.film_id = myinventory.film_id
-    INNER JOIN rental as myrental
-    ON myrental.inventory_id = myinventory.inventory_id
-    GROUP BY myfilm.film_id, myfilm.title
+		myfilm.film_id,
+		myfilm.title,
+		COUNT(myrental.rental_id) as total_times_rented
+		FROM
+		film as myfilm
+		LEFT OUTER JOIN inventory as myinventory
+		ON myfilm.film_id = myinventory.film_id
+		INNER JOIN rental as myrental
+		ON myrental.inventory_id = myinventory.inventory_id
+		GROUP BY myfilm.film_id, myfilm.title
+),
+AVG_RENTALS AS 
+(
+	SELECT 
+		AVG(RENTALS_BY_FILM.total_times_rented) as value
+		FROM RENTALS_BY_FILM
 )
 SELECT 
-RENTALS_BY_FILM.film_id,
-RENTALS_BY_FILM.title,
-RENTALS_BY_FILM.total_times_rented,
-CASE 
-WHEN RENTALS_BY_FILM.total_times_rented <= (
-SELECT 
-AVG(RENTALS_BY_FILM.total_times_rented) 
-FROM RENTALS_BY_FILM
-) THEN 'False'
-WHEN RENTALS_BY_FILM.total_times_rented > (
-SELECT 
-AVG(RENTALS_BY_FILM.total_times_rented) 
-FROM RENTALS_BY_FILM
-) THEN 'True'
-END AS greater_than_average
-FROM RENTALS_BY_FILM
+	RENTALS_BY_FILM.film_id,
+	RENTALS_BY_FILM.title,
+	RENTALS_BY_FILM.total_times_rented,
+	CASE 
+	WHEN RENTALS_BY_FILM.total_times_rented <= AVG_RENTALS.value THEN 'False'
+	WHEN RENTALS_BY_FILM.total_times_rented > AVG_RENTALS.value THEN 'True'
+	END AS greater_than_average
+	FROM RENTALS_BY_FILM, AVG_RENTALS
 
 -- Using Query sent on slack, please update self joins to the CTE to come up with 3 addition columns (first, second, third).
 -- Using partitions:
