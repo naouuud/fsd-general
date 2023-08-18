@@ -35,8 +35,9 @@ SELECT
 
 
 -- Using Query sent on slack, please update self joins to the CTE to come up with 3 addition columns (first, second, third).
--- Using partitions:
 
+DROP TABLE IF EXISTS TOP3;
+CREATE TEMPORARY TABLE TOP3 AS (
 WITH FILM_CATEGORY AS
 (
 	SELECT 
@@ -56,15 +57,55 @@ WITH FILM_CATEGORY AS
 		se_rental.customer_id,
 		se_category.name
 		ORDER BY customer_id, COUNT(se_rental.rental_id) DESC
-	)
-SELECT
-	part_by_cust.*
-	FROM
-	(SELECT
+	),
+PART_BY_CUST AS 
+(SELECT
 		FILM_CATEGORY.customer_id,
 		FILM_CATEGORY.category_name,
 		FILM_CATEGORY.total_rentals,
 		ROW_NUMBER() OVER (PARTITION BY FILM_CATEGORY.customer_id ORDER BY FILM_CATEGORY.total_rentals DESC)
-		FROM FILM_CATEGORY) part_by_cust
-	WHERE part_by_cust.row_number IN (1, 2, 3)
-	 
+		FROM FILM_CATEGORY)
+SELECT
+	PART_BY_CUST.customer_id,
+	PART_BY_CUST.category_name,
+	PART_BY_CUST.total_rentals,
+	PART_BY_CUST.row_number
+	FROM
+	PART_BY_CUST
+	WHERE PART_BY_CUST.row_number IN (1, 2, 3)
+);
+
+DROP TABLE IF EXISTS FIRST_JOIN;
+CREATE TEMPORARY TABLE FIRST_JOIN AS
+(SELECT 
+	TOP3_1.customer_id,
+ 	TOP3_1.category_name as top_1,
+ 	TOP3_2.category_name as category_name,
+ 	TOP3_2.row_number as row_number
+	FROM TOP3 AS TOP3_1
+	INNER JOIN TOP3 AS TOP3_2
+	ON TOP3_1.customer_id = TOP3_2.customer_id
+	AND TOP3_1.row_number = 1);
+	
+DROP TABLE IF EXISTS SECOND_JOIN;
+CREATE TEMPORARY TABLE SECOND_JOIN AS
+(SELECT
+	FIRST_JOIN.customer_id,
+ 	FIRST_JOIN.top_1,
+ 	FIRST_JOIN.category_name as top_2,
+ 	TOP3.row_number as row_number,
+	TOP3.category_name
+FROM FIRST_JOIN
+INNER JOIN TOP3
+ON FIRST_JOIN.customer_id = TOP3.customer_id
+AND FIRST_JOIN.row_number = 2);
+
+SELECT
+	DISTINCT SECOND_JOIN.customer_id,
+	SECOND_JOIN.top_1,
+	SECOND_JOIN.top_2,
+	SECOND_JOIN.category_name as top_3
+FROM SECOND_JOIN
+INNER JOIN TOP3
+ON SECOND_JOIN.customer_id = TOP3.customer_id
+AND SECOND_JOIN.row_number = 3
