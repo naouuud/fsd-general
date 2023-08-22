@@ -180,8 +180,6 @@ INNER JOIN customer as mycustomer2
 ON SELECTED_CUSTOMERS.customer_id = mycustomer2.customer_id
 
 -- (LEFT JOIN): List all actors who haven't appeared in a film with a rating of 'R'.
--- SAME PROBLEM AS ABOVE, verify
-
 WITH ACTORS_IN_R_FILMS AS
 (
 SELECT 
@@ -200,3 +198,4 @@ CONCAT(myactor2.first_name, ' ', myactor2.last_name) as actor_name
 FROM actor as myactor2
 LEFT OUTER JOIN ACTORS_IN_R_FILMS
 ON myactor2.actor_id = ACTORS_IN_R_FILMS.actor_id
+WHERE ACTORS_IN_R_FILMS.actor_id IS NULL
