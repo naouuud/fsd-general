@@ -126,12 +126,16 @@ ORDER BY total_films_rented DESC
 LIMIT 5
 
 -- Identify films that have never been rented out. Use a combination of CTE and LEFT JOIN for this task.
--- FIX (films where one inventory is not rented)
+-- I was not able to solve this, so I am presenting two possible solutions:
+
+-- Solution 1: Returns all films that are not in inventory (therefore not rented), in addition to an inventory item which is 
+-- unrented ('Academy Dinosaur'), but which has other copies in the inventory that are.
 WITH FILM_RENTALS AS 
 (
 	SELECT 
 	myfilm.film_id as film_id,
 	myfilm.title as title, 
+	myinventory.inventory_id as inventory_id,
 	myrental.rental_id as rental_id
 	FROM film as myfilm
 	LEFT OUTER JOIN inventory as myinventory
@@ -145,12 +149,14 @@ title
 FROM FILM_RENTALS
 WHERE rental_id IS NULL
 
--- scribbles
-SELECT
-*
+-- Solution 2: Returns only the unrented inventory item (excluding films not in inventory).
+SELECT 
+myfilm.title
 FROM inventory as myinventory
 LEFT OUTER JOIN rental as myrental
-ON myrental.inventory_id = myinventory.inventory_id
+ON myinventory.inventory_id = myrental.inventory_id
+INNER JOIN film as myfilm
+ON myinventory.film_id = myfilm.film_id
 WHERE myrental.rental_id IS NULL
 
 -- (INNER JOIN): Find the names of customers who rented films with a replacement cost greater 
@@ -228,3 +234,26 @@ FROM customer as mycustomer
 LEFT OUTER JOIN HORROR_RENTALS
 ON HORROR_RENTALS.customer_id = mycustomer.customer_id
 WHERE HORROR_RENTALS.rental_id IS NULL
+
+-- (Multiple INNER JOINs): Find the names and email addresses of customers who rented films directed 
+--  by a specific actor (let's say, for the sake of this task, that the actor's first name is 
+-- 'Nick' and last name is 'Wahlberg', 
+--  although this might not match actual data in the DVD Rental database).
+
+SELECT 
+DISTINCT(mycustomer.customer_id),
+CONCAT(mycustomer.first_name, ' ', mycustomer.last_name) as customer_name,
+mycustomer.email 
+FROM actor as myactor
+INNER JOIN film_actor as myfilm_actor
+ON myactor.actor_id = myfilm_actor.actor_id
+INNER JOIN film as myfilm
+ON myfilm_actor.film_id = myfilm.film_id
+INNER JOIN inventory as myinventory
+ON myfilm.film_id = myinventory.film_id
+INNER JOIN rental as myrental
+ON myinventory.inventory_id = myrental.inventory_id
+INNER JOIN customer as mycustomer
+ON myrental.customer_id = mycustomer.customer_id
+WHERE myactor.first_name = 'Nick'
+AND myactor.last_name = 'Wahlberg'
