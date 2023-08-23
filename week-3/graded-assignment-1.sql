@@ -199,3 +199,31 @@ FROM actor as myactor2
 LEFT OUTER JOIN ACTORS_IN_R_FILMS
 ON myactor2.actor_id = ACTORS_IN_R_FILMS.actor_id
 WHERE ACTORS_IN_R_FILMS.actor_id IS NULL
+
+-- (Combination of INNER JOIN and LEFT JOIN): 
+-- Identify customers who have never rented a film from the 'Horror' category.
+
+WITH HORROR_RENTALS AS 
+(
+	SELECT
+	myrental.rental_id as rental_id,
+	myrental.customer_id as customer_id,
+	mycategory.name as category_name
+	FROM rental as myrental
+	INNER JOIN inventory as myinventory
+	ON myrental.inventory_id = myinventory.inventory_id
+	INNER JOIN film as myfilm
+	ON myinventory.film_id = myfilm.film_id
+	INNER JOIN film_category as myfilm_category
+	ON myfilm_category.film_id = myfilm.film_id
+	INNER JOIN category as mycategory
+	ON mycategory.category_id = myfilm_category.category_id
+	WHERE LOWER(mycategory.name) = 'horror'
+)
+SELECT 
+mycustomer.customer_id,
+CONCAT(mycustomer.first_name, ' ', mycustomer.last_name)
+FROM customer as mycustomer
+LEFT OUTER JOIN HORROR_RENTALS
+ON HORROR_RENTALS.customer_id = mycustomer.customer_id
+WHERE HORROR_RENTALS.rental_id IS NULL
