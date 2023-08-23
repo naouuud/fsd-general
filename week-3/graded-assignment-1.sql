@@ -5,6 +5,7 @@ WITH RENTALS_BY_RATING AS
 (
 	SELECT
 	myfilm.rating,
+	COUNT(myrental.rental_id) as total_rentals,
 	COUNT(DISTINCT myfilm.film_id) as total_films
 	FROM 
 	rental as myrental
@@ -18,7 +19,7 @@ WITH RENTALS_BY_RATING AS
 SELECT 
 * 
 FROM RENTALS_BY_RATING
-WHERE RENTALS_BY_RATING.total_films > 50
+WHERE RENTALS_BY_RATING.total_rentals > 50
 
 -- Identify the categories of films that have an average rental duration greater than 5 days. 
 -- Only consider films rated 'PG' or 'G'.
