@@ -28,7 +28,7 @@ WHERE
 
 SELECT
 	mycategory.name as category_name,
-	COALESCE(AVG(myfilm.rental_duration), 0) as avg_rental_duration
+	ROUND(COALESCE(AVG(myfilm.rental_duration), 0), 2) as avg_rental_duration
 FROM public.category as mycategory
 LEFT OUTER JOIN public.film_category as myfilm_category
 	ON myfilm_category.category_id = mycategory.category_id
@@ -151,6 +151,17 @@ LEFT OUTER JOIN RENTED_FILMS
 	ON RENTED_FILMS.film_id = myfilm.film_id
 WHERE RENTED_FILMS.film_id IS NULL
 
+-- Alternatively, ONLY inventory items which are not rented out:
+SELECT 
+	myinventory.inventory_id,
+	myfilm.title
+FROM public.inventory as myinventory
+LEFT OUTER JOIN public.rental as myrental
+	ON myinventory.inventory_id = myrental.inventory_id
+INNER JOIN public.film as myfilm
+	ON myinventory.film_id = myfilm.film_id
+WHERE myrental.rental_id IS NULL
+
 -- (INNER JOIN): Find the names of customers who rented films with a replacement cost greater 
 --than $20 and which belong to the 'Action' or 'Comedy' categories.
 
@@ -244,7 +255,7 @@ WHERE
 SELECT 
 	DISTINCT(mycustomer.customer_id),
 	CONCAT(mycustomer.first_name, ' ', mycustomer.last_name) as customer_name,
-	mycustomer.email 
+	mycustomer.email as customer_email
 FROM public.actor as myactor
 INNER JOIN public.film_actor as myfilm_actor
 	ON myactor.actor_id = myfilm_actor.actor_id
