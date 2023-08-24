@@ -4,93 +4,118 @@
 WITH RENTALS_BY_RATING AS 
 (
 	SELECT
-	myfilm.rating,
-	COUNT(myrental.rental_id) as total_rentals,
-	COUNT(DISTINCT myfilm.film_id) as total_films
-	FROM 
-	rental as myrental
-	INNER JOIN inventory as myinventory
-	ON myinventory.inventory_id = myrental.inventory_id
-	INNER JOIN film as myfilm
-	ON myinventory.film_id = myfilm.film_id
+		myfilm.rating as film_rating,
+		COALESCE(COUNT(myrental.rental_id), 0) as total_rentals
+	FROM public.rental as myrental
+	INNER JOIN public.inventory as myinventory
+		ON myinventory.inventory_id = myrental.inventory_id
+	INNER JOIN public.film as myfilm
+		ON myinventory.film_id = myfilm.film_id
 	WHERE EXTRACT(YEAR FROM myrental.rental_date) = 2005
-	GROUP BY myfilm.rating
+	GROUP BY 
+		myfilm.rating
 )
 SELECT 
-* 
+	film_rating,
+	total_rentals
 FROM RENTALS_BY_RATING
-WHERE RENTALS_BY_RATING.total_rentals > 50
+WHERE 
+	RENTALS_BY_RATING.total_rentals > 50
 
 -- Identify the categories of films that have an average rental duration greater than 5 days. 
 -- Only consider films rated 'PG' or 'G'.
 
-WITH AVG_RENTAL_DURATION_CATEGORY AS
-(
 SELECT
-mycategory.name,
-AVG(myfilm.rental_duration) as avg_rental_duration
-FROM film_category as myfilm_category
-INNER JOIN film as myfilm
-ON myfilm_category.film_id = myfilm.film_id
-INNER join category as mycategory
-ON myfilm_category.category_id = mycategory.category_id
-WHERE LOWER(CAST(myfilm.rating AS TEXT)) = 'pg' 
-	OR LOWER(CAST(myfilm.rating AS TEXT)) = 'g'
-GROUP BY mycategory.name
-)
-SELECT 
-*
-FROM AVG_RENTAL_DURATION_CATEGORY
-WHERE avg_rental_duration > 5
+	mycategory.name as category_name,
+	COALESCE(AVG(myfilm.rental_duration), 0) as avg_rental_duration
+FROM public.category as mycategory
+LEFT OUTER JOIN public.film_category as myfilm_category
+	ON myfilm_category.category_id = mycategory.category_id
+LEFT OUTER JOIN public.film as myfilm
+	ON myfilm_category.film_id = myfilm.film_id
+WHERE 
+	LOWER(CAST(myfilm.rating AS TEXT)) = 'pg' 
+OR 
+	LOWER(CAST(myfilm.rating AS TEXT)) = 'g'
+GROUP BY 
+	mycategory.name
+HAVING AVG(myfilm.rental_duration) > 5
 
 -- Determine the total rental amount collected from each customer. 
 -- List only those customers who have spent more than $100 in total.
 
+WITH RENTAL_AMOUNT_BY_CUSTOMER AS (
 SELECT  
-mypayment.customer_id,
-SUM(mypayment.amount) as total_rental_amount
-FROM rental as myrental
-INNER JOIN payment as mypayment
-ON myrental.rental_id = mypayment.rental_id
-GROUP BY mypayment.customer_id
-HAVING SUM(mypayment.amount) > 100
+	mypayment.customer_id as customer_id,
+	SUM(mypayment.amount) as total_rental_amount
+FROM public.rental as myrental
+INNER JOIN public.payment as mypayment
+	ON myrental.rental_id = mypayment.rental_id
+GROUP BY 
+	mypayment.customer_id
+)
+SELECT
+	*
+FROM RENTAL_AMOUNT_BY_CUSTOMER
+WHERE 
+	total_rental_amount > 100
+
+--OR
+
+WITH RENTAL_AMOUNT_BY_CUSTOMER AS (
+SELECT  
+	mycustomer.customer_id as customer_id,
+	COALESCE(SUM(mypayment.amount), 0) as total_rental_amount
+FROM public.customer as mycustomer
+LEFT OUTER JOIN public.rental as myrental
+	ON myrental.customer_id = mycustomer.customer_id
+INNER JOIN public.payment as mypayment
+	ON myrental.rental_id = mypayment.rental_id
+GROUP BY 
+	mycustomer.customer_id
+)
+SELECT
+	customer_id,
+	total_rental_amount
+FROM RENTAL_AMOUNT_BY_CUSTOMER
+WHERE 
+	total_rental_amount > 100
 
 -- Create a temporary table containing the names and email addresses of 
 -- customers who have rented more than 10 films.
 
-DROP TABLE IF EXISTS TEN_FILMS_PLUS;
-CREATE TEMPORARY TABLE TEN_FILMS_PLUS AS
+DROP TABLE IF EXISTS RENTED_TEN_PLUS_FILMS;
+CREATE TEMPORARY TABLE RENTED_TEN_PLUS_FILMS AS
 (
 	SELECT 
-	mycustomer.customer_id as customer_id,
-	CONCAT(mycustomer.first_name, ' ', mycustomer.last_name) as customer_name,
-	COUNT(DISTINCT myfilm.film_id) as total_films_rented
-	FROM
-	rental as myrental
-	INNER JOIN inventory as myinventory
-	ON myinventory.inventory_id = myrental.inventory_id
-	INNER JOIN film as myfilm
-	ON myinventory.film_id = myfilm.film_id
-	INNER JOIN customer as mycustomer
-	ON myrental.customer_id = mycustomer.customer_id
-	GROUP BY mycustomer.customer_id, CONCAT(mycustomer.first_name, ' ', mycustomer.last_name)
-	HAVING COUNT(DISTINCT myfilm.film_id) > 10
-	ORDER BY COUNT(myfilm.film_id) DESC
+		mycustomer.customer_id as customer_id,
+		CONCAT(mycustomer.first_name, ' ', mycustomer.last_name) as customer_name,
+		mycustomer.email as customer_email,
+		COUNT(DISTINCT myfilm.film_id) as total_films_rented
+	FROM public.rental as myrental
+	INNER JOIN public.inventory as myinventory
+		ON myinventory.inventory_id = myrental.inventory_id
+	INNER JOIN public.film as myfilm
+		ON myinventory.film_id = myfilm.film_id
+	INNER JOIN public.customer as mycustomer
+		ON myrental.customer_id = mycustomer.customer_id
+	GROUP BY 
+		mycustomer.customer_id, CONCAT(mycustomer.first_name, ' ', mycustomer.last_name)
+	HAVING 
+		COUNT(DISTINCT myfilm.film_id) > 10
 );
-
 SELECT
-customer_name, total_films_rented
-FROM TEN_FILMS_PLUS
+	customer_name, 
+	customer_email
+FROM RENTED_TEN_PLUS_FILMS
 
 -- From the temporary table created in Task 3.1, 
 -- identify customers who have a Gmail email address (i.e., their email ends with '@gmail.com').
 
 SELECT
-*
-FROM TEN_FILMS_PLUS
-INNER JOIN customer as mycustomer
-ON TEN_FILMS_PLUS.customer_id = mycustomer.customer_id
-WHERE mycustomer.email LIKE '%@gmail.com'
+	customer_name
+FROM RENTED_TEN_PLUS_FILMS
+WHERE customer_email LIKE '%@gmail.com'
 
 -- Start by creating a CTE that finds the total number of films rented for each category.
 -- Create a temporary table from this CTE.
@@ -101,63 +126,46 @@ CREATE TEMPORARY TABLE FILMS_RENTED_BY_CATEGORY AS
 (
 	WITH FILMS_RENTED_BY_CATEGORY_CTE AS 
 	(
-	SELECT
-		mycategory.category_id,
-		mycategory.name as category_name,
-		COUNT(DISTINCT myfilm_category.film_id) as total_films_rented
-		FROM rental as myrental
-		INNER JOIN inventory as myinventory
-		ON myinventory.inventory_id = myrental.inventory_id
-		INNER JOIN film as myfilm
-		ON myinventory.film_id = myfilm.film_id
-		INNER JOIN film_category as myfilm_category
-		ON myfilm_category.film_id = myfilm.film_id
-		INNER JOIN category as mycategory
-		ON mycategory.category_id = myfilm_category.category_id
-		GROUP BY mycategory.category_id, mycategory.name
+		SELECT
+			mycategory.name as category_name,
+			COALESCE(COUNT(myrental.rental_id)) as total_films_rented
+		FROM public.category as mycategory
+		LEFT OUTER JOIN public.film_category as myfilm_category
+			ON myfilm_category.category_id = mycategory.category_id
+		LEFT OUTER JOIN public.inventory as myinventory
+			ON myinventory.film_id = myfilm_category.film_id
+		LEFT OUTER JOIN public.rental as myrental
+			ON myinventory.inventory_id = myrental.inventory_id
+		GROUP BY 
+			mycategory.name
 	)
 	SELECT * FROM FILMS_RENTED_BY_CATEGORY_CTE
 );
 
 SELECT  
-category_name
+	category_name,
+	total_films_rented
 FROM FILMS_RENTED_BY_CATEGORY
-ORDER BY total_films_rented DESC
+ORDER BY 
+	total_films_rented DESC
 LIMIT 5
 
--- Identify films that have never been rented out. Use a combination of CTE and LEFT JOIN for this task.
--- I was not able to solve this, so I am presenting two possible solutions:
 
--- Solution 1: Returns all films that are not in inventory (therefore not rented), in addition to an inventory item which is 
--- unrented ('Academy Dinosaur'), but which has other copies in the inventory that are.
-WITH FILM_RENTALS AS 
-(
-	SELECT 
-	myfilm.film_id as film_id,
-	myfilm.title as title, 
-	myinventory.inventory_id as inventory_id,
-	myrental.rental_id as rental_id
-	FROM film as myfilm
-	LEFT OUTER JOIN inventory as myinventory
-	ON myfilm.film_id = myinventory.film_id
-	LEFT OUTER JOIN rental as myrental
+-- Identify films that have never been rented out. Use a combination of CTE and LEFT JOIN for this task.
+
+WITH RENTED_FILMS AS (
+SELECT 
+	DISTINCT myinventory.film_id
+FROM public.rental as myrental
+INNER JOIN public.inventory as myinventory
 	ON myinventory.inventory_id = myrental.inventory_id
 )
-SELECT 
-film_id,
-title
-FROM FILM_RENTALS
-WHERE rental_id IS NULL
-
--- Solution 2: Returns only the unrented inventory item (excluding films not in inventory).
-SELECT 
-myfilm.title
-FROM inventory as myinventory
-LEFT OUTER JOIN rental as myrental
-ON myinventory.inventory_id = myrental.inventory_id
-INNER JOIN film as myfilm
-ON myinventory.film_id = myfilm.film_id
-WHERE myrental.rental_id IS NULL
+SELECT
+	myfilm.title
+FROM public.film as myfilm
+LEFT OUTER JOIN RENTED_FILMS
+	ON RENTED_FILMS.film_id = myfilm.film_id
+WHERE RENTED_FILMS.film_id IS NULL
 
 -- (INNER JOIN): Find the names of customers who rented films with a replacement cost greater 
 --than $20 and which belong to the 'Action' or 'Comedy' categories.
